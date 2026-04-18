@@ -1,0 +1,142 @@
+{
+  "name": "codex-link",
+  "displayName": "Codex Link",
+  "description": "A lightweight bridge that helps your editor work more smoothly with the official Codex agent extension.",
+  "version": "0.0.4",
+  "publisher": "changwenluo",
+  "icon": "resources/codex-link-marketplace.png",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lcwlucky/codex-link-vscode-plugin.git"
+  },
+  "homepage": "https://github.com/lcwlucky/codex-link-vscode-plugin",
+  "bugs": {
+    "url": "https://github.com/lcwlucky/codex-link-vscode-plugin/issues"
+  },
+  "categories": ["Other", "Machine Learning"],
+  "keywords": ["codex", "openai", "agent", "chat", "productivity"],
+  "galleryBanner": {
+    "color": "#102A43",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onCommand:codexBridge.addSelectionToChat",
+    "onCommand:codexBridge.addResourceToChat",
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codexLinkViewContainer",
+          "title": "Codex Link",
+          "icon": "resources/codex-link.svg"
+        }
+      ]
+    },
+    "views": {
+      "codexLinkViewContainer": [
+        {
+          "id": "codexLink.dropZoneView",
+          "type": "webview",
+          "name": "Codex Link"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "codexBridge.addSelectionToChat",
+        "title": "Add to Codex"
+      },
+      {
+        "command": "codexBridge.addSelectionToChatShortcut",
+        "title": "Add to Codex"
+      },
+      {
+        "command": "codexBridge.addResourceToChat",
+        "title": "Add to Codex"
+      },
+      {
+        "command": "codexBridge.installCodexDependency",
+        "title": "Install Codex"
+      },
+      {
+        "command": "codexBridge.openCodex",
+        "title": "Open Codex"
+      },
+      {
+        "command": "codexBridge.addCurrentFileToChat",
+        "title": "Add Current File to Codex"
+      },
+      {
+        "command": "codexBridge.pickFilesOrFoldersToChat",
+        "title": "Pick Files or Folder for Codex"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "codexBridge.addResourceToChat",
+          "when": "resourceScheme == file && !explorerResourceIsFolder",
+          "group": "navigation"
+        },
+        {
+          "command": "codexBridge.addResourceToChat",
+          "when": "resourceScheme == file && explorerResourceIsFolder",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "codexBridge.addSelectionToChat",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "codexBridge.addSelectionToChatShortcut",
+          "when": "false"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "codexBridge.addSelectionToChatShortcut",
+        "key": "ctrl+alt+l",
+        "mac": "cmd+alt+l",
+        "when": "editorTextFocus && editorHasSelection"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "rm -rf out && tsc -p .",
+    "test": "vitest run tests",
+    "lint": "eslint src tests --ext .ts --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "package:vsix": "vsce package --no-dependencies",
+    "publish:vsce": "vsce publish --no-dependencies",
+    "openvsx:create-namespace": "npx ovsx create-namespace changwenluo",
+    "openvsx:publish": "npx ovsx publish",
+    "publish:all": "pnpm run publish:vsce && pnpm run openvsx:publish",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/vscode": "^1.96.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
+    "@vscode/vsce": "^3.9.0",
+    "eslint": "8",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

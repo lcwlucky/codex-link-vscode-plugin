@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="36" y1="28" x2="216" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#102A43" />
+      <stop offset="0.58" stop-color="#163A63" />
+      <stop offset="1" stop-color="#0A1D33" />
+    </linearGradient>
+    <linearGradient id="shell" x1="84" y1="60" x2="174" y2="188" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2EC5D3" />
+      <stop offset="1" stop-color="#198FB8" />
+    </linearGradient>
+    <linearGradient id="core" x1="96" y1="82" x2="162" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#EFF7FF" />
+      <stop offset="0.58" stop-color="#CBEAFE" />
+      <stop offset="1" stop-color="#92D8F8" />
+    </linearGradient>
+    <linearGradient id="beam" x1="106" y1="104" x2="172" y2="164" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B2239" />
+      <stop offset="1" stop-color="#154E7A" />
+    </linearGradient>
+    <linearGradient id="flare" x1="152" y1="72" x2="187" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9AF3FF" />
+      <stop offset="1" stop-color="#29D3E6" />
+    </linearGradient>
+    <filter id="shadow" x="42" y="40" width="172" height="184" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix" />
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+      <feOffset dy="10" />
+      <feGaussianBlur stdDeviation="10" />
+      <feComposite in2="hardAlpha" operator="out" />
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0156863 0 0 0 0 0.109804 0 0 0 0 0.203922 0 0 0 0.34 0" />
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1" />
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape" />
+    </filter>
+  </defs>
+
+  <rect x="18" y="18" width="220" height="220" rx="52" fill="url(#bg)" />
+  <path d="M46 58C46 45.85 55.85 36 68 36H160C165.83 36 171.41 38.32 175.54 42.46L213.54 80.46C217.68 84.59 220 90.17 220 96V188C220 200.15 210.15 210 198 210H96C90.17 210 84.59 207.68 80.46 203.54L42.46 165.54C38.32 161.41 36 155.83 36 150V58Z" fill="rgba(255,255,255,0.03)" />
+
+  <g filter="url(#shadow)">
+    <path d="M128 52L175.63 79.5V134.5L128 162L80.37 134.5V79.5L128 52Z" fill="url(#shell)" />
+    <path d="M128 66L163.51 86.5V127.5L128 148L92.49 127.5V86.5L128 66Z" fill="#0E2A46" fill-opacity="0.78" />
+    <path d="M128 78L154.98 93.5V120.5L128 136L101.02 120.5V93.5L128 78Z" fill="url(#core)" />
+
+    <path d="M102 116.5C102 105.73 110.73 97 121.5 97H133.5C144.27 97 153 105.73 153 116.5C153 119.62 152.26 122.69 150.85 125.47L142.5 142H113.5L105.15 125.47C103.74 122.69 103 119.62 103 116.5H102Z" fill="url(#beam)" />
+    <path d="M117 111L126 120L143 103" stroke="#B8F4FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M108 152C108 146.48 112.48 142 118 142H139C144.52 142 149 146.48 149 152V155C149 160.52 144.52 165 139 165H118C112.48 165 108 160.52 108 155V152Z" fill="#EAF7FF" fill-opacity="0.9" />
+    <path d="M118 153H139" stroke="#0E2A46" stroke-width="7" stroke-linecap="round" />
+    <path d="M161 72L169 80L180 69" stroke="url(#flare)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <path d="M176 48L208 80" stroke="#7DEEFF" stroke-width="10" stroke-linecap="round" stroke-opacity="0.6" />
+  <path d="M65 188L87 210" stroke="#083055" stroke-width="12" stroke-linecap="round" stroke-opacity="0.45" />
+</svg>

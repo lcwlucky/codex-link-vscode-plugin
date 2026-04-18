@@ -1,0 +1,7 @@
+.idea
+node_modules
+out
+*.vsix
+coverage
+assets
+docs/superpowers
