@@ -2,7 +2,7 @@
   "name": "codex-link",
   "displayName": "Codex Link",
   "description": "A lightweight bridge that helps your editor work more smoothly with the official Codex agent extension.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "changwenluo",
   "icon": "resources/codex-link-marketplace.png",
   "license": "SEE LICENSE IN LICENSE",
