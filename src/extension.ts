@@ -51,10 +51,12 @@ export function activate(context: vscode.ExtensionContext): void {
       CodexLinkViewProvider.viewType,
       codexLinkViewProvider,
     ),
-    vscode.window.onDidChangeTextEditorSelection(() =>
-      codeLensProvider.refresh(),
-    ),
-    vscode.window.onDidChangeActiveTextEditor(() => codeLensProvider.refresh()),
+    vscode.window.onDidChangeTextEditorSelection(() => {
+      codeLensProvider.refresh();
+    }),
+    vscode.window.onDidChangeActiveTextEditor(() => {
+      codeLensProvider.refresh();
+    }),
   );
 }
 

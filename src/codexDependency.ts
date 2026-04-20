@@ -2,12 +2,13 @@ import * as vscode from 'vscode';
 
 export const CODEX_EXTENSION_ID = 'openai.chatgpt';
 
-export type CodexDependencyState = 'missing' | 'disabled' | 'ready';
+export type CodexDependencyState = 'missing' | 'ready';
 
 type ExtensionLike = {
   id?: string;
   isActive?: boolean;
   packageJSON?: unknown;
+  activate?: () => Thenable<unknown>;
 };
 
 export function getCodexDependencyState(
@@ -17,7 +18,17 @@ export function getCodexDependencyState(
     return 'missing';
   }
 
-  return extension.isActive ? 'ready' : 'disabled';
+  return 'ready';
+}
+
+export async function activateCodexExtension(
+  extension: ExtensionLike | undefined,
+): Promise<void> {
+  if (!extension || extension.isActive || !extension.activate) {
+    return;
+  }
+
+  await extension.activate();
 }
 
 export function getInstalledCodexExtension():

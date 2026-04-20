@@ -12,7 +12,7 @@ Source repository: [github.com/lcwlucky/codex-link-vscode-plugin](https://github
 
 Codex Link adds these entry points:
 
-- An inline `Add to Codex (⌥⌘L)` CodeLens above a selected text range on macOS, or `Add to Codex (Ctrl+Alt+L)` on other platforms
+- An `Add to Chat` CodeLens above the selected range
 - An editor title action named `Add to Codex`
 - Explorer context menu actions named `Add to Codex` for files and folders
 - A dedicated `Codex Link` sidebar with:
@@ -80,14 +80,14 @@ Default shortcut:
 - macOS: `Cmd+Option+L`
 - Windows / Linux: `Ctrl+Alt+L`
 
-You can change this shortcut in VS Code Keyboard Shortcuts. The inline CodeLens label keeps showing the default shortcut text and does not dynamically reflect user-customized keybindings.
+You can change this shortcut in VS Code Keyboard Shortcuts. The inline CodeLens keeps showing the default shortcut text and does not dynamically reflect user-customized keybindings.
 
 Steps:
 
 1. Open a local file, an untitled scratch file, or a VS Code JSON settings editor.
 2. Select a single contiguous block of text.
-3. Look for the inline `Add to Codex` CodeLens above the selection.
-4. Click it.
+3. Look for the `Add to Chat` CodeLens above the selection.
+4. Click it, or use the `Cmd+Option+L` / `Ctrl+Alt+L` shortcut.
 
 What happens:
 
@@ -99,6 +99,19 @@ Notes:
 - This works in local `file` documents, `untitled` documents, and VS Code JSON settings editors such as `settings.json`
 - This action supports one non-empty selection at a time
 - If you have multiple selections, Codex Link will reject the action
+- To reduce flicker during word-level search/navigation, single-line selections without whitespace only show `Add to Chat` when their trimmed length is at least `50` characters by default
+
+Selection visibility setting:
+
+Add this to `settings.json` if you want shorter or longer single-line expressions to trigger the inline actions:
+
+```json
+{
+  "codexLink.minSingleLineSelectionLength": 12
+}
+```
+
+This setting only affects single-line selections without whitespace. Multi-line selections and single-line selections that already contain whitespace still always show the action.
 
 ### 2. Send the current file from the editor title bar
 
@@ -219,7 +232,7 @@ If the official Codex extension is installed but disabled:
 ## Current Limitations
 
 - Only local `file` resources are supported
-- Only a single non-empty text selection shows the inline CodeLens action
+- Only a single non-empty text selection shows the `Add to Chat` CodeLens
 - Selection handoff supports local files, untitled editors, and VS Code JSON settings editors
 - Folder contents are not expanded by Codex Link itself
 - Drag and drop is best-effort and is not guaranteed to work identically across all VS Code environments
@@ -264,7 +277,7 @@ Use this checklist before packaging or publishing:
 
 1. Install and enable the official `openai.chatgpt` extension.
 2. Open a local file.
-3. Select a single contiguous range and confirm the inline `Add to Codex` CodeLens appears.
+3. Select a single contiguous range and confirm the `Add to Chat` CodeLens appears above the selection.
 4. Click the CodeLens and confirm Codex receives the selected range.
 5. Confirm the editor title action `Add to Codex` appears.
 6. Right-click a file in Explorer and confirm `Add to Codex` appears and works.

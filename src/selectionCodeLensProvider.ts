@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { shouldShowSelectionAction } from './selectionActionVisibility';
 import { getSelectionState } from './selectionState';
 
 export class SelectionCodeLensProvider implements vscode.CodeLensProvider {
@@ -10,8 +11,8 @@ export class SelectionCodeLensProvider implements vscode.CodeLensProvider {
   constructor(platform = process.platform) {
     this.selectionLabel =
       platform === 'darwin'
-        ? 'Add to Codex (⌥⌘L)'
-        : 'Add to Codex (Ctrl+Alt+L)';
+        ? 'Add to Chat (⌥⌘L)'
+        : 'Add to Chat (Ctrl+Alt+L)';
   }
 
   refresh(): void {
@@ -30,10 +31,18 @@ export class SelectionCodeLensProvider implements vscode.CodeLensProvider {
       selections: editor.selections.map((selection) => ({
         isEmpty: selection.isEmpty,
         startLine: selection.start.line,
+        activeLine: selection.active.line,
+        activeCharacter: selection.active.character,
       })),
     });
 
     if (state.kind !== 'valid') {
+      return [];
+    }
+
+    const [selection] = editor.selections;
+
+    if (!selection || !shouldShowSelectionAction(document, selection)) {
       return [];
     }
 

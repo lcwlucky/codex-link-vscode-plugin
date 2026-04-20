@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {
+  activateCodexExtension,
   type CodexDependencyState,
   getCodexDependencyState,
   getInstalledCodexExtension,
@@ -9,11 +10,25 @@ import { type SelectionState, getSelectionState } from './selectionState';
 
 type ResourceLike = { scheme: string; fsPath: string };
 
+export type SelectionCommandSnapshot = {
+  anchorLine: number;
+  anchorCharacter: number;
+  activeLine: number;
+  activeCharacter: number;
+};
+
+export type AddSelectionToChatArgs = {
+  documentUri: string;
+  selections: SelectionCommandSnapshot[];
+};
+
 type CommandDeps = {
   dependencyState: CodexDependencyState;
   selectionState?: SelectionState;
+  restoreSelections?: () => Thenable<void> | void;
   resource?: ResourceLike;
   resources?: ResourceLike[];
+  initialSidebarReadyMs?: number;
   wait?: (ms: number) => Promise<void>;
   showErrorMessage: (
     message: string,
@@ -48,15 +63,6 @@ async function handleDependencyFailure(
     };
   }
 
-  if (dependencyState === 'disabled') {
-    showErrorMessage(messages.disabledDependency);
-    return {
-      kind: 'error',
-      message: messages.disabledDependency,
-      addedCount: 0,
-    };
-  }
-
   return null;
 }
 
@@ -66,6 +72,19 @@ function getSuccessMessage(count: number): string {
 
 async function waitForCodexReady(ms: number): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+function toSelectionStateSnapshot(
+  selection: SelectionCommandSnapshot,
+): SelectionState {
+  const startLine = Math.min(selection.anchorLine, selection.activeLine);
+
+  return {
+    kind: 'valid',
+    startLine,
+    activeLine: selection.activeLine,
+    activeCharacter: selection.activeCharacter,
+  };
 }
 
 export async function addSelectionToChat(deps: CommandDeps): Promise<void> {
@@ -95,13 +114,20 @@ export async function addSelectionToChat(deps: CommandDeps): Promise<void> {
   }
 
   const wait = deps.wait ?? waitForCodexReady;
+  const initialSidebarReadyMs = deps.initialSidebarReadyMs ?? 150;
 
   try {
+    await deps.executeCommand('chatgpt.openSidebar');
+    await wait(initialSidebarReadyMs);
+    await deps.restoreSelections?.();
+    await wait(0);
     await deps.executeCommand('chatgpt.addToThread');
   } catch {
     try {
       await deps.executeCommand('chatgpt.openSidebar');
       await wait(150);
+      await deps.restoreSelections?.();
+      await wait(0);
       await deps.executeCommand('chatgpt.addToThread');
     } catch {
       deps.showErrorMessage(messages.commandFailure);
@@ -165,29 +191,70 @@ export async function addResourcesToChat(
   }
 }
 
-export async function runAddSelectionToChat(): Promise<void> {
+export async function runAddSelectionToChat(
+  args?: AddSelectionToChatArgs,
+): Promise<void> {
   const editor = vscode.window.activeTextEditor;
-  const dependencyState = getCodexDependencyState(getInstalledCodexExtension());
-  const selectionState = editor
-    ? getSelectionState({
-        documentScheme: editor.document.uri.scheme,
-        selections: editor.selections.map((selection) => ({
-          isEmpty: selection.isEmpty,
-          startLine: selection.start.line,
-        })),
-      })
-    : { kind: 'unsupported' as const };
+  const codexExtension = getInstalledCodexExtension();
+  const wasInactiveBeforeCommand = !!codexExtension && !codexExtension.isActive;
+  const dependencyState = getCodexDependencyState(codexExtension);
+  await activateCodexExtension(codexExtension);
+  const shouldRestoreSelection =
+    !!editor &&
+    !!args &&
+    editor.document.uri.toString() === args.documentUri &&
+    args.selections.length > 0;
+  const selectionState =
+    shouldRestoreSelection && args.selections.length === 1
+      ? toSelectionStateSnapshot(args.selections[0])
+      : editor
+        ? getSelectionState({
+            documentScheme: editor.document.uri.scheme,
+            selections: editor.selections.map((selection) => ({
+              isEmpty: selection.isEmpty,
+              startLine: selection.start.line,
+              activeLine: selection.active.line,
+              activeCharacter: selection.active.character,
+            })),
+          })
+        : { kind: 'unsupported' as const };
 
   await addSelectionToChat({
     dependencyState,
     selectionState,
+    initialSidebarReadyMs: wasInactiveBeforeCommand ? 1000 : 150,
+    restoreSelections:
+      shouldRestoreSelection && editor
+        ? async () => {
+            const focusedEditor = await vscode.window.showTextDocument(
+              editor.document,
+              {
+                viewColumn: editor.viewColumn,
+                preserveFocus: false,
+              },
+            );
+            const restoredSelections = args.selections.map(
+              (selection) =>
+                new vscode.Selection(
+                  selection.anchorLine,
+                  selection.anchorCharacter,
+                  selection.activeLine,
+                  selection.activeCharacter,
+                ),
+            );
+            focusedEditor.selections = restoredSelections;
+            focusedEditor.selection = restoredSelections[0];
+          }
+        : undefined,
     showErrorMessage: vscode.window.showErrorMessage,
     executeCommand: vscode.commands.executeCommand,
   });
 }
 
 export async function runAddResourceToChat(uri?: vscode.Uri): Promise<void> {
-  const dependencyState = getCodexDependencyState(getInstalledCodexExtension());
+  const codexExtension = getInstalledCodexExtension();
+  const dependencyState = getCodexDependencyState(codexExtension);
+  await activateCodexExtension(codexExtension);
 
   await addResourceToChat({
     dependencyState,
@@ -200,7 +267,9 @@ export async function runAddResourceToChat(uri?: vscode.Uri): Promise<void> {
 export async function runAddResourceUrisToChat(
   uris: vscode.Uri[],
 ): Promise<AddResourcesResult> {
-  const dependencyState = getCodexDependencyState(getInstalledCodexExtension());
+  const codexExtension = getInstalledCodexExtension();
+  const dependencyState = getCodexDependencyState(codexExtension);
+  await activateCodexExtension(codexExtension);
 
   return addResourcesToChat({
     dependencyState,
@@ -246,6 +315,7 @@ export async function runPickFilesOrFoldersToChat(): Promise<AddResourcesResult>
 
 export async function runOpenCodex(): Promise<AddResourcesResult> {
   try {
+    await activateCodexExtension(getInstalledCodexExtension());
     await vscode.commands.executeCommand('chatgpt.openSidebar');
     return {
       kind: 'info',

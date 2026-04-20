@@ -1,6 +1,8 @@
 export type SelectionSnapshot = {
   isEmpty: boolean;
   startLine: number;
+  activeLine: number;
+  activeCharacter: number;
 };
 
 export type SelectionContext = {
@@ -9,7 +11,12 @@ export type SelectionContext = {
 };
 
 export type SelectionState =
-  | { kind: 'valid'; startLine: number }
+  | {
+      kind: 'valid';
+      startLine: number;
+      activeLine: number;
+      activeCharacter: number;
+    }
   | { kind: 'empty' }
   | { kind: 'multi' }
   | { kind: 'unsupported' };
@@ -35,5 +42,10 @@ export function getSelectionState(context: SelectionContext): SelectionState {
     return { kind: 'empty' };
   }
 
-  return { kind: 'valid', startLine: selection.startLine };
+  return {
+    kind: 'valid',
+    startLine: selection.startLine,
+    activeLine: selection.activeLine,
+    activeCharacter: selection.activeCharacter,
+  };
 }

@@ -48,7 +48,7 @@ describe('extension activation', () => {
       .mockReturnValue({ dispose: vi.fn() });
   });
 
-  it('registers the selection CodeLens for file-like text documents', () => {
+  it('registers the selection code lenses for file-like text documents', () => {
     const context = { subscriptions: [] as { dispose(): void }[] };
 
     activate(context as never);

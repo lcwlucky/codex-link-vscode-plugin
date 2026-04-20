@@ -106,4 +106,19 @@ describe('package manifest', () => {
 
     expect(editorTitleEntry?.when).toBe('editorTextFocus');
   });
+
+  it('exposes a configurable threshold for single-line selection actions', () => {
+    const property =
+      manifest.contributes.configuration?.properties?.[
+        'codexLink.minSingleLineSelectionLength'
+      ];
+
+    expect(property).toEqual({
+      type: 'number',
+      default: 50,
+      minimum: 1,
+      markdownDescription:
+        'Minimum trimmed character length for showing `Add to Chat` on single-line selections without whitespace. Multi-line selections and single-line selections containing whitespace still always show the action.',
+    });
+  });
 });
