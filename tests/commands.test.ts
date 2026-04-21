@@ -41,6 +41,14 @@ vi.mock('vscode', () => ({
     showOpenDialog: vi.fn(),
     showTextDocument: vi.fn(async () => mockActiveTextEditor.current),
   },
+  workspace: {
+    openTextDocument: vi.fn(),
+  },
+  env: {
+    clipboard: {
+      readText: vi.fn(),
+    },
+  },
   commands: {
     executeCommand: vi.fn(),
   },
@@ -50,6 +58,9 @@ import {
   addResourceToChat,
   addResourcesToChat,
   addSelectionToChat,
+  buildTerminalSelectionContent,
+  addTerminalSelectionToChat,
+  buildTerminalSelectionFilename,
   runAddSelectionToChat,
 } from '../src/commands';
 import * as codexDependency from '../src/codexDependency';
@@ -370,6 +381,105 @@ describe('commands', () => {
     });
 
     expect(wait).toHaveBeenCalledWith(1000);
+  });
+
+  it('creates a temp file resource for terminal selection and adds it to Codex', async () => {
+    const showMessage = vi.fn();
+    const executeCommand = vi.fn().mockResolvedValue(undefined);
+    const readClipboardText = vi.fn().mockResolvedValue('npm test\nvitest run');
+    const createTerminalSelectionResource = vi.fn().mockResolvedValue({
+      scheme: 'file',
+      fsPath: '/tmp/codex-link/fish-1',
+    });
+
+    await addTerminalSelectionToChat({
+      dependencyState: 'ready',
+      executeCommand,
+      showErrorMessage: showMessage,
+      readClipboardText,
+      createTerminalSelectionResource,
+      metadata: {
+        terminalName: 'fish',
+      },
+    });
+
+    expect(executeCommand).toHaveBeenNthCalledWith(
+      1,
+      'workbench.action.terminal.copySelection',
+    );
+    expect(createTerminalSelectionResource).toHaveBeenCalledWith(
+      'npm test\nvitest run',
+      {
+        terminalName: 'fish',
+      },
+    );
+    expect(executeCommand).toHaveBeenNthCalledWith(
+      2,
+      'chatgpt.addFileToThread',
+      {
+        scheme: 'file',
+        fsPath: '/tmp/codex-link/fish-1',
+      },
+    );
+    expect(executeCommand).toHaveBeenNthCalledWith(3, 'chatgpt.openSidebar');
+    expect(showMessage).not.toHaveBeenCalled();
+  });
+
+  it('builds a short terminal selection filename from terminal name and sequence', () => {
+    expect(buildTerminalSelectionFilename('fish (4)', 1)).toBe(
+      'fish-1',
+    );
+    expect(buildTerminalSelectionFilename('fish', 2)).toBe('fish-2');
+    expect(buildTerminalSelectionFilename(undefined, 3)).toBe(
+      'terminal-3',
+    );
+  });
+
+  it('builds terminal capture content with terminal metadata header', () => {
+    expect(
+      buildTerminalSelectionContent({
+        text: 'pnpm dev\nError: listen EADDRINUSE',
+        terminalName: 'fish',
+        workingDirectory: '/tmp/project',
+        capturedAt: '2026-04-21 15:00:00',
+      }),
+    ).toBe(
+      [
+        '[Codex Link Terminal Capture]',
+        'Source: VS Code integrated terminal',
+        'Terminal: fish',
+        'Kind: terminal output',
+        'Working Directory: /tmp/project',
+        'Captured At: 2026-04-21 15:00:00',
+        'Note: The content below is copied from a terminal selection. Treat it as terminal output, logs, or error messages.',
+        '',
+        '----- BEGIN TERMINAL SELECTION -----',
+        'pnpm dev',
+        'Error: listen EADDRINUSE',
+        '----- END TERMINAL SELECTION -----',
+      ].join('\n'),
+    );
+  });
+
+  it('shows an error when terminal copy produces no clipboard text', async () => {
+    const showErrorMessage = vi.fn();
+    const executeCommand = vi.fn().mockResolvedValue(undefined);
+
+    await addTerminalSelectionToChat({
+      dependencyState: 'ready',
+      executeCommand,
+      showErrorMessage,
+      readClipboardText: vi.fn().mockResolvedValue('   '),
+      createTerminalSelectionResource: vi.fn(),
+      metadata: {
+        terminalName: 'fish',
+      },
+    });
+
+    expect(showErrorMessage).toHaveBeenCalledWith(
+      'Select some terminal text before adding it to Codex.',
+    );
+    expect(executeCommand).toHaveBeenCalledTimes(1);
   });
 
   it('delegates file resources to chatgpt.addFileToThread', async () => {

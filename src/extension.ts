@@ -3,16 +3,20 @@ import {
   runAddCurrentFileToChat,
   runAddResourceToChat,
   runAddSelectionToChat,
+  runAddTerminalSelectionToChat,
   runOpenCodex,
   runPickFilesOrFoldersToChat,
 } from './commands';
 import { CodexLinkViewProvider } from './codexLinkViewProvider';
 import { openCodexExtensionInstallPage } from './codexDependency';
 import { SelectionCodeLensProvider } from './selectionCodeLensProvider';
+import { cleanupTerminalCaptureFiles } from './terminalCaptureCleanup';
 
 export function activate(context: vscode.ExtensionContext): void {
   const codeLensProvider = new SelectionCodeLensProvider();
   const codexLinkViewProvider = new CodexLinkViewProvider();
+
+  void cleanupTerminalCaptureFiles().catch(() => undefined);
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
@@ -26,6 +30,10 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(
       'codexBridge.addResourceToChat',
       runAddResourceToChat,
+    ),
+    vscode.commands.registerCommand(
+      'codexBridge.addTerminalSelectionToChat',
+      runAddTerminalSelectionToChat,
     ),
     vscode.commands.registerCommand('codexBridge.installCodexDependency', () =>
       openCodexExtensionInstallPage(vscode.env.openExternal),

@@ -2,7 +2,7 @@
   "name": "codex-link",
   "displayName": "Codex Link",
   "description": "A lightweight bridge that helps your editor work more smoothly with the official Codex agent extension.",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "publisher": "changwenluo",
   "icon": "resources/codex-link-marketplace.png",
   "license": "SEE LICENSE IN LICENSE",
@@ -26,6 +26,7 @@
   "main": "./out/extension.js",
   "activationEvents": [
     "onCommand:codexBridge.addSelectionToChat",
+    "onCommand:codexBridge.addTerminalSelectionToChat",
     "onCommand:codexBridge.addResourceToChat",
     "onStartupFinished"
   ],
@@ -56,6 +57,10 @@
       {
         "command": "codexBridge.addSelectionToChatShortcut",
         "title": "Add to Codex"
+      },
+      {
+        "command": "codexBridge.addTerminalSelectionToChat",
+        "title": "Add Terminal Selection to Codex"
       },
       {
         "command": "codexBridge.addResourceToChat",
@@ -93,9 +98,15 @@
       ],
       "editor/title": [
         {
-          "command": "codexBridge.addSelectionToChat",
-          "when": "editorTextFocus",
+          "command": "codexBridge.addCurrentFileToChat",
+          "when": "editorTextFocus && resourceScheme == file",
           "group": "navigation"
+        }
+      ],
+      "terminal/context": [
+        {
+          "command": "codexBridge.addTerminalSelectionToChat",
+          "group": "3_edit"
         }
       ],
       "commandPalette": [
@@ -111,6 +122,12 @@
         "key": "ctrl+alt+l",
         "mac": "cmd+alt+l",
         "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "codexBridge.addTerminalSelectionToChat",
+        "key": "ctrl+alt+l",
+        "mac": "cmd+alt+l",
+        "when": "terminalFocus || (activePanel == 'terminal' && !textInputFocus)"
       }
     ],
     "configuration": {
@@ -120,7 +137,19 @@
           "type": "number",
           "default": 50,
           "minimum": 1,
-          "markdownDescription": "Minimum trimmed character length for showing `Add to Chat` on single-line selections without whitespace. Multi-line selections and single-line selections containing whitespace still always show the action."
+          "markdownDescription": "Minimum trimmed character length for showing `Add to Codex` on single-line selections without whitespace. Multi-line selections and single-line selections containing whitespace still always show the action."
+        },
+        "codexLink.terminalCaptureRetentionHours": {
+          "type": "number",
+          "default": 24,
+          "minimum": 1,
+          "markdownDescription": "Delete Codex Link terminal capture temp files older than this many hours."
+        },
+        "codexLink.terminalCaptureMaxFiles": {
+          "type": "number",
+          "default": 100,
+          "minimum": 1,
+          "markdownDescription": "Keep at most this many recent Codex Link terminal capture temp files."
         }
       }
     }

@@ -12,8 +12,9 @@ Source repository: [github.com/lcwlucky/codex-link-vscode-plugin](https://github
 
 Codex Link adds these entry points:
 
-- An `Add to Chat` CodeLens above the selected range
-- An editor title action named `Add to Codex`
+- An `Add to Codex` CodeLens above the selected range
+- An editor title action named `Add Current File to Codex`
+- A terminal context action named `Add Terminal Selection to Codex`
 - Explorer context menu actions named `Add to Codex` for files and folders
 - A dedicated `Codex Link` sidebar with:
   - `Open Codex`
@@ -86,7 +87,7 @@ Steps:
 
 1. Open a local file, an untitled scratch file, or a VS Code JSON settings editor.
 2. Select a single contiguous block of text.
-3. Look for the `Add to Chat` CodeLens above the selection.
+3. Look for the `Add to Codex` CodeLens above the selection.
 4. Click it, or use the `Cmd+Option+L` / `Ctrl+Alt+L` shortcut.
 
 What happens:
@@ -99,7 +100,7 @@ Notes:
 - This works in local `file` documents, `untitled` documents, and VS Code JSON settings editors such as `settings.json`
 - This action supports one non-empty selection at a time
 - If you have multiple selections, Codex Link will reject the action
-- To reduce flicker during word-level search/navigation, single-line selections without whitespace only show `Add to Chat` when their trimmed length is at least `50` characters by default
+- To reduce flicker during word-level search/navigation, single-line selections without whitespace only show `Add to Codex` when their trimmed length is at least `50` characters by default
 
 Selection visibility setting:
 
@@ -113,7 +114,37 @@ Add this to `settings.json` if you want shorter or longer single-line expression
 
 This setting only affects single-line selections without whitespace. Multi-line selections and single-line selections that already contain whitespace still always show the action.
 
-### 2. Send the current file from the editor title bar
+### 2. Send a terminal selection to Codex
+
+Use this when the context you want to share is terminal output or a command snippet instead of editor text.
+
+Default shortcut while terminal focus is active:
+
+- macOS: `Cmd+Option+L`
+- Windows / Linux: `Ctrl+Alt+L`
+
+Steps:
+
+1. Focus an integrated terminal in VS Code.
+2. Select a block of terminal text.
+3. Right-click and choose `Add Terminal Selection to Codex`, or use the terminal shortcut.
+
+What happens:
+
+- Codex Link copies the current terminal selection
+- Codex Link writes that text to a temporary file with a short name such as `fish-1` or `fish-2`
+- The temporary file starts with terminal metadata such as the terminal name, working directory, and capture time so Codex can treat it as terminal output instead of an ordinary note
+- Codex Link sends that temporary file to Codex as an attachment-style context item
+
+Notes:
+
+- This path is best-effort because VS Code does not expose a stable extension API for reading terminal selections directly
+- The bridge uses the system clipboard to capture the terminal selection before creating the temporary file
+- If terminal copy does not place any text on the clipboard, Codex Link will show an error instead of sending stale empty content
+- The resulting attachment UI is controlled by the official Codex extension, so it may not look exactly like Cursor's terminal context chip
+- Codex Link cleans up old terminal capture temp files automatically using `codexLink.terminalCaptureRetentionHours` and `codexLink.terminalCaptureMaxFiles`, which default to `24` hours and `100` files
+
+### 3. Send the current file from the editor title bar
 
 Use this when you already have a file open and want a persistent button without selecting text.
 
@@ -121,13 +152,13 @@ Steps:
 
 1. Open a local file.
 2. Look at the editor title bar.
-3. Click `Add to Codex`.
+3. Click `Add Current File to Codex`.
 
 What happens:
 
 - Codex Link sends the current file to Codex using the official file command
 
-### 3. Send a file from the Explorer
+### 4. Send a file from the Explorer
 
 Use this when you want to add a whole file from the file tree.
 
@@ -141,7 +172,7 @@ What happens:
 
 - Codex Link sends that file path to Codex
 
-### 4. Send a folder from the Explorer
+### 5. Send a folder from the Explorer
 
 Use this when you want Codex to know about a folder without expanding every file manually.
 
@@ -157,7 +188,7 @@ What happens:
 - Codex Link does not enumerate folder contents itself
 - Codex can then read from that folder on demand
 
-### 5. Use the `Codex Link` sidebar
+### 6. Use the `Codex Link` sidebar
 
 The sidebar is useful when you want a dedicated handoff panel.
 
@@ -232,8 +263,9 @@ If the official Codex extension is installed but disabled:
 ## Current Limitations
 
 - Only local `file` resources are supported
-- Only a single non-empty text selection shows the `Add to Chat` CodeLens
+- Only a single non-empty text selection shows the `Add to Codex` CodeLens
 - Selection handoff supports local files, untitled editors, and VS Code JSON settings editors
+- Terminal selection handoff is best-effort and depends on terminal copy updating the system clipboard
 - Folder contents are not expanded by Codex Link itself
 - Drag and drop is best-effort and is not guaranteed to work identically across all VS Code environments
 - Codex Link cannot inject custom UI into the official Codex chat input itself
@@ -260,6 +292,16 @@ Check these items:
 4. Make sure you only have one selection range
 5. Try changing the selection once more to refresh the CodeLens
 
+### Terminal selection did not send the expected text
+
+Try this:
+
+1. Re-select the terminal text and run `Add Terminal Selection to Codex` again
+2. Confirm the terminal selection can be copied normally in your VS Code environment
+3. Check whether another app or extension is interfering with the system clipboard
+4. If the terminal path remains unreliable, paste the terminal snippet into an untitled editor and use the regular selection action
+5. Look for a new temporary attachment in Codex whose file name looks like `fish-1` or `terminal-1`
+
 ### Drag and drop into the sidebar does not work
 
 Try this:
@@ -277,9 +319,9 @@ Use this checklist before packaging or publishing:
 
 1. Install and enable the official `openai.chatgpt` extension.
 2. Open a local file.
-3. Select a single contiguous range and confirm the `Add to Chat` CodeLens appears above the selection.
+3. Select a single contiguous range and confirm the `Add to Codex` CodeLens appears above the selection.
 4. Click the CodeLens and confirm Codex receives the selected range.
-5. Confirm the editor title action `Add to Codex` appears.
+5. Confirm the editor title action `Add Current File to Codex` appears.
 6. Right-click a file in Explorer and confirm `Add to Codex` appears and works.
 7. Right-click a folder in Explorer and confirm `Add to Codex` appears and adds only the folder path context.
 8. Open the `Codex Link` sidebar and test:
@@ -287,13 +329,15 @@ Use this checklist before packaging or publishing:
    - `Add Current File to Codex`
    - `Pick Files or Folder for Codex`
    - drag and drop from the VS Code Explorer if your environment supports it
-9. Disable or uninstall `openai.chatgpt` and confirm install guidance appears.
+9. Select terminal text and confirm `Add Terminal Selection to Codex` works from the terminal context menu or shortcut.
+10. Disable or uninstall `openai.chatgpt` and confirm install guidance appears.
 
 ## Internal Command IDs
 
 These command ids are stable inside this project:
 
 - `codexBridge.addSelectionToChat`
+- `codexBridge.addTerminalSelectionToChat`
 - `codexBridge.addResourceToChat`
 - `codexBridge.installCodexDependency`
 - `codexBridge.openCodex`

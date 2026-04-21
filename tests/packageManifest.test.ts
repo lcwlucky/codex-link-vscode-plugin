@@ -99,12 +99,39 @@ describe('package manifest', () => {
     expect(shortcutEntry?.when).toBe('editorTextFocus && editorHasSelection');
   });
 
-  it('does not restrict the editor action to file-backed editors', () => {
+  it('wires the editor title action to add the current file only for local files', () => {
     const editorTitleEntry = manifest.contributes.menus['editor/title']?.find(
-      (item) => item.command === 'codexBridge.addSelectionToChat',
+      (item) => item.command === 'codexBridge.addCurrentFileToChat',
     );
 
-    expect(editorTitleEntry?.when).toBe('editorTextFocus');
+    expect(editorTitleEntry?.when).toBe('editorTextFocus && resourceScheme == file');
+  });
+
+  it('exposes a terminal selection command in the manifest', () => {
+    const commandEntry = manifest.contributes.commands.find(
+      (item) => item.command === 'codexBridge.addTerminalSelectionToChat',
+    );
+    const terminalMenuEntry = manifest.contributes.menus['terminal/context']?.find(
+      (item) => item.command === 'codexBridge.addTerminalSelectionToChat',
+    );
+    const terminalKeybinding = manifest.contributes.keybindings.find(
+      (item) => item.command === 'codexBridge.addTerminalSelectionToChat',
+    );
+
+    expect(commandEntry).toEqual({
+      command: 'codexBridge.addTerminalSelectionToChat',
+      title: 'Add Terminal Selection to Codex',
+    });
+    expect(terminalMenuEntry).toEqual({
+      command: 'codexBridge.addTerminalSelectionToChat',
+      group: '3_edit',
+    });
+    expect(terminalKeybinding).toEqual({
+      command: 'codexBridge.addTerminalSelectionToChat',
+      key: 'ctrl+alt+l',
+      mac: 'cmd+alt+l',
+      when: "terminalFocus || (activePanel == 'terminal' && !textInputFocus)",
+    });
   });
 
   it('exposes a configurable threshold for single-line selection actions', () => {
@@ -118,7 +145,33 @@ describe('package manifest', () => {
       default: 50,
       minimum: 1,
       markdownDescription:
-        'Minimum trimmed character length for showing `Add to Chat` on single-line selections without whitespace. Multi-line selections and single-line selections containing whitespace still always show the action.',
+        'Minimum trimmed character length for showing `Add to Codex` on single-line selections without whitespace. Multi-line selections and single-line selections containing whitespace still always show the action.',
+    });
+  });
+
+  it('exposes configurable terminal capture cleanup settings', () => {
+    const retentionProperty =
+      manifest.contributes.configuration?.properties?.[
+        'codexLink.terminalCaptureRetentionHours'
+      ];
+    const maxFilesProperty =
+      manifest.contributes.configuration?.properties?.[
+        'codexLink.terminalCaptureMaxFiles'
+      ];
+
+    expect(retentionProperty).toEqual({
+      type: 'number',
+      default: 24,
+      minimum: 1,
+      markdownDescription:
+        'Delete Codex Link terminal capture temp files older than this many hours.',
+    });
+    expect(maxFilesProperty).toEqual({
+      type: 'number',
+      default: 100,
+      minimum: 1,
+      markdownDescription:
+        'Keep at most this many recent Codex Link terminal capture temp files.',
     });
   });
 });

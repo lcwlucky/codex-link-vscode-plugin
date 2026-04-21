@@ -11,8 +11,8 @@ export class SelectionCodeLensProvider implements vscode.CodeLensProvider {
   constructor(platform = process.platform) {
     this.selectionLabel =
       platform === 'darwin'
-        ? 'Add to Chat (⌥⌘L)'
-        : 'Add to Chat (Ctrl+Alt+L)';
+        ? 'Add to Codex (⌥⌘L)'
+        : 'Add to Codex (Ctrl+Alt+L)';
   }
 
   refresh(): void {

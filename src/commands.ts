@@ -1,3 +1,6 @@
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import * as vscode from 'vscode';
 import {
   activateCodexExtension,
@@ -7,6 +10,7 @@ import {
 } from './codexDependency';
 import { messages } from './messages';
 import { type SelectionState, getSelectionState } from './selectionState';
+import { cleanupTerminalCaptureFiles } from './terminalCaptureCleanup';
 
 type ResourceLike = { scheme: string; fsPath: string };
 
@@ -37,11 +41,114 @@ type CommandDeps = {
   executeCommand: (command: string, ...args: unknown[]) => Thenable<unknown>;
 };
 
+type TerminalSelectionCommandDeps = Pick<
+  CommandDeps,
+  'dependencyState' | 'showErrorMessage' | 'executeCommand'
+> & {
+  readClipboardText: typeof vscode.env.clipboard.readText;
+  createTerminalSelectionResource: (
+    text: string,
+    metadata?: TerminalSelectionMetadata,
+  ) => Promise<ResourceLike>;
+  metadata?: TerminalSelectionMetadata;
+};
+
 export type AddResourcesResult = {
   kind: 'success' | 'error' | 'info';
   message: string;
   addedCount: number;
 };
+
+export type TerminalSelectionMetadata = {
+  terminalName?: string;
+  workingDirectory?: string;
+  capturedAt?: string;
+};
+
+const terminalSelectionSequenceBySlug = new Map<string, number>();
+
+function slugifyTerminalLabel(label: string, fallback: string): string {
+  const slug = label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return slug || fallback;
+}
+
+export function buildTerminalSelectionFilename(
+  terminalName: string | undefined,
+  sequence: number,
+): string {
+  const normalizedTerminalName = (terminalName ?? 'terminal').replace(
+    /\s*\(\d+\)\s*$/,
+    '',
+  );
+  const terminalSlug = slugifyTerminalLabel(normalizedTerminalName, 'terminal');
+
+  return `${terminalSlug}-${sequence}`;
+}
+
+export function buildTerminalSelectionContent({
+  text,
+  terminalName,
+  workingDirectory,
+  capturedAt,
+}: TerminalSelectionMetadata & { text: string }): string {
+  return [
+    '[Codex Link Terminal Capture]',
+    'Source: VS Code integrated terminal',
+    `Terminal: ${terminalName ?? 'Unknown'}`,
+    'Kind: terminal output',
+    `Working Directory: ${workingDirectory ?? 'Unavailable'}`,
+    `Captured At: ${capturedAt ?? 'Unavailable'}`,
+    'Note: The content below is copied from a terminal selection. Treat it as terminal output, logs, or error messages.',
+    '',
+    '----- BEGIN TERMINAL SELECTION -----',
+    text,
+    '----- END TERMINAL SELECTION -----',
+  ].join('\n');
+}
+
+function getNextTerminalSelectionSequence(terminalName?: string): number {
+  const normalizedTerminalName = (terminalName ?? 'terminal').replace(
+    /\s*\(\d+\)\s*$/,
+    '',
+  );
+  const terminalSlug = slugifyTerminalLabel(normalizedTerminalName, 'terminal');
+  const nextSequence = (terminalSelectionSequenceBySlug.get(terminalSlug) ?? 0) + 1;
+
+  terminalSelectionSequenceBySlug.set(terminalSlug, nextSequence);
+
+  return nextSequence;
+}
+
+async function createTerminalSelectionResource(
+  text: string,
+  metadata: TerminalSelectionMetadata = {},
+): Promise<ResourceLike> {
+  const directory = await mkdtemp(join(tmpdir(), 'codex-link-terminal-selection-'));
+  const filename = buildTerminalSelectionFilename(
+    metadata.terminalName,
+    getNextTerminalSelectionSequence(metadata.terminalName),
+  );
+  const filePath = join(directory, filename);
+
+  await writeFile(
+    filePath,
+    buildTerminalSelectionContent({
+      text,
+      ...metadata,
+      capturedAt:
+        metadata.capturedAt ??
+        new Date().toISOString().replace('T', ' ').slice(0, 19),
+    }),
+    'utf8',
+  );
+
+  return vscode.Uri.file(filePath);
+}
 
 async function handleDependencyFailure(
   dependencyState: CodexDependencyState,
@@ -133,6 +240,42 @@ export async function addSelectionToChat(deps: CommandDeps): Promise<void> {
       deps.showErrorMessage(messages.commandFailure);
     }
   }
+}
+
+export async function addTerminalSelectionToChat(
+  deps: TerminalSelectionCommandDeps,
+): Promise<void> {
+  const dependencyFailure = await handleDependencyFailure(
+    deps.dependencyState,
+    deps.executeCommand,
+    deps.showErrorMessage,
+  );
+
+  if (dependencyFailure) {
+    return;
+  }
+
+  await deps.executeCommand('workbench.action.terminal.copySelection');
+
+  const text = (await deps.readClipboardText()).trim();
+
+  if (!text) {
+    deps.showErrorMessage(messages.emptyTerminalSelection);
+    return;
+  }
+
+  const resource = await deps.createTerminalSelectionResource(
+    text,
+    deps.metadata,
+  );
+  await cleanupTerminalCaptureFiles().catch(() => undefined);
+
+  await addResourceToChat({
+    dependencyState: deps.dependencyState,
+    resource,
+    showErrorMessage: deps.showErrorMessage,
+    executeCommand: deps.executeCommand,
+  });
 }
 
 export async function addResourceToChat(deps: CommandDeps): Promise<void> {
@@ -261,6 +404,28 @@ export async function runAddResourceToChat(uri?: vscode.Uri): Promise<void> {
     resource: uri,
     showErrorMessage: vscode.window.showErrorMessage,
     executeCommand: vscode.commands.executeCommand,
+  });
+}
+
+export async function runAddTerminalSelectionToChat(): Promise<void> {
+  const codexExtension = getInstalledCodexExtension();
+  const dependencyState = getCodexDependencyState(codexExtension);
+  await activateCodexExtension(codexExtension);
+
+  await addTerminalSelectionToChat({
+    dependencyState,
+    showErrorMessage: vscode.window.showErrorMessage,
+    executeCommand: vscode.commands.executeCommand,
+    readClipboardText: vscode.env.clipboard.readText,
+    createTerminalSelectionResource,
+    metadata: {
+      terminalName: vscode.window.activeTerminal?.name,
+      workingDirectory: vscode.window.activeTerminal?.shellIntegration?.cwd
+        ? vscode.window.activeTerminal.shellIntegration.cwd.scheme === 'file'
+          ? vscode.window.activeTerminal.shellIntegration.cwd.fsPath
+          : vscode.window.activeTerminal.shellIntegration.cwd.toString()
+        : undefined,
+    },
   });
 }
 

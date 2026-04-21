@@ -50,7 +50,7 @@ vi.mock('vscode', () => {
 import { SelectionCodeLensProvider } from '../src/selectionCodeLensProvider';
 
 describe('selection code lens provider', () => {
-  it('shows the mac shortcut in the Add to Chat label', () => {
+  it('shows the mac shortcut in the Add to Codex label', () => {
     const provider = new SelectionCodeLensProvider('darwin');
     const document = {
       uri: { toString: () => 'file:///tmp/example.ts', scheme: 'file' },
@@ -72,10 +72,10 @@ describe('selection code lens provider', () => {
 
     const lenses = provider.provideCodeLenses(document as never);
 
-    expect(lenses[0]?.command?.title).toBe('Add to Chat (⌥⌘L)');
+    expect(lenses[0]?.command?.title).toBe('Add to Codex (⌥⌘L)');
   });
 
-  it('shows the non-mac shortcut in the Add to Chat label', () => {
+  it('shows the non-mac shortcut in the Add to Codex label', () => {
     const provider = new SelectionCodeLensProvider('linux');
     const longSingleLineToken = 'x'.repeat(120);
     const document = {
@@ -98,7 +98,7 @@ describe('selection code lens provider', () => {
 
     const lenses = provider.provideCodeLenses(document as never);
 
-    expect(lenses[0]?.command?.title).toBe('Add to Chat (Ctrl+Alt+L)');
+    expect(lenses[0]?.command?.title).toBe('Add to Codex (Ctrl+Alt+L)');
   });
 
   it('hides the code lens for short single-token selections', () => {

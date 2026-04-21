@@ -62,4 +62,15 @@ describe('extension activation', () => {
       expect.anything(),
     );
   });
+
+  it('registers the terminal selection command on activation', () => {
+    const context = { subscriptions: [] as { dispose(): void }[] };
+
+    activate(context as never);
+
+    expect(vscodeMocks.registerCommand).toHaveBeenCalledWith(
+      'codexBridge.addTerminalSelectionToChat',
+      expect.any(Function),
+    );
+  });
 });
